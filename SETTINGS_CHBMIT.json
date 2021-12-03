@@ -1,0 +1,6 @@
+{
+  "dataset": "CHBMIT",
+  "datadir": "/data/gaoyikai/chb-mit-scalp-eeg-database-1.0.0",
+  "cachedir": "/data/zzy/CHB-MIT-cache",
+  "resultdir": "results"
+}
