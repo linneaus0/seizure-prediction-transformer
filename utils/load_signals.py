@@ -1,15 +1,12 @@
 import os
-import sys
-import json
 import numpy as np
 import pandas as pd
 import scipy.io
 from scipy.signal import resample
 import stft
+import random
 import matplotlib.pyplot as plt
-sys.path.append('../')
-print(sys.path)
-
+import copy
 from myio.save_load import save_pickle_file, load_pickle_file, \
     save_hickle_file, load_hickle_file
 from utils.group_seizure_Kaggle2014Pred import group_seizure
@@ -204,7 +201,8 @@ def load_signals_CHBMIT(data_dir, target, data_type):
         '20',
         '21',
         '22',
-        '23'
+        '23',
+        '24'
     ]
     for t in targets:
         nslist = [elem for elem in nsfilenames if
@@ -246,22 +244,31 @@ def load_signals_CHBMIT(data_dir, target, data_type):
         if target in ['4','9']:
             exclude_chs = [u'T8-P8']
 
-        if target in ['13','16']:
-            chs = [u'FP1-F7', u'F7-T7', u'T7-P7', u'P7-O1', u'FP1-F3', u'F3-C3', u'C3-P3', u'P3-O1', u'FP2-F4', u'F4-C4', u'C4-P4', u'P4-O2', u'FP2-F8', u'F8-T8', u'T8-P8', u'P8-O2', u'FZ-CZ', u'CZ-PZ']
+        if target in ['13','15','16','17','18','19']:
+            chs = [u'FP1-F7', u'F7-T7', u'T7-P7', u'P7-O1', u'FP1-F3', u'F3-C3', u'C3-P3', u'P3-O1', u'FP2-F4', u'F4-C4', u'C4-P4', u'P4-O2', u'FP2-F8', u'F8-T8', u'T8-P8-0', u'P8-O2', u'FZ-CZ', u'CZ-PZ']
         elif target in ['4']:
-            chs = [u'FP1-F7', u'F7-T7', u'T7-P7', u'P7-O1', u'FP1-F3', u'F3-C3', u'C3-P3', u'P3-O1', u'FP2-F4', u'F4-C4', u'C4-P4', u'P4-O2', u'FP2-F8', u'F8-T8', u'P8-O2', u'FZ-CZ', u'CZ-PZ', u'P7-T7', u'T7-FT9', u'FT10-T8']
+            chs = [u'FP1-F7', u'F7-T7', u'T7-P7', u'P7-O1', u'FP1-F3', u'F3-C3', u'C3-P3', u'P3-O1', u'FP2-F4', u'F4-C4', u'C4-P4', u'P4-O2', u'FP2-F8', u'F8-T8', u'T8-P8-0', u'P8-O2', u'FZ-CZ', u'CZ-PZ', u'P7-T7', u'T7-FT9', u'FT10-T8']
         else:
-            chs = [u'FP1-F7', u'F7-T7', u'T7-P7', u'P7-O1', u'FP1-F3', u'F3-C3', u'C3-P3', u'P3-O1', u'FP2-F4', u'F4-C4', u'C4-P4', u'P4-O2', u'FP2-F8', u'F8-T8', u'T8-P8', u'P8-O2', u'FZ-CZ', u'CZ-PZ', u'P7-T7', u'T7-FT9', u'FT9-FT10', u'FT10-T8']
+            chs = [u'FP1-F7', u'F7-T7', u'T7-P7', u'P7-O1', u'FP1-F3', u'F3-C3', u'C3-P3', u'P3-O1', u'FP2-F4', u'F4-C4', u'C4-P4', u'P4-O2', u'FP2-F8', u'F8-T8', u'T8-P8-0', u'P8-O2', u'FZ-CZ', u'CZ-PZ', u'P7-T7', u'T7-FT9', u'FT9-FT10', u'FT10-T8']
 
 
         rawEEG = read_raw_edf('%s/%s' % (dir, filename),
                               #exclude=exclude_chs,  #only work in mne 0.16
                               verbose=0,preload=False)
+        if target in ['13', '15', '16', '17', '18', '19']:
+            cp = copy.deepcopy(rawEEG)
+            try:
+                cp.pick_channels(chs)
+                assert len(cp.ch_names) == 18
+            except:
+                chs = [u'T8-P8' if i == u'T8-P8-0' else i for i in chs]
+            del cp
 
         rawEEG.pick_channels(chs)
         #print(rawEEG.ch_names)
         #rawEEG.notch_filter(freqs=np.arange(60,121,60))
         tmp = rawEEG.to_data_frame()
+        tmp.drop(columns='time', inplace=True)
         tmp = tmp.values
 
         if data_type == 'ictal':
@@ -298,6 +305,7 @@ def load_signals_CHBMIT(data_dir, target, data_type):
                                 rawEEG = read_raw_edf('%s/%s' % (dir, prevfile), preload=False,verbose=0)
                                 rawEEG.pick_channels(chs)
                                 prevtmp = rawEEG.to_data_frame()
+                                prevtmp.drop(columns='time', inplace=True)
                                 prevtmp = prevtmp.values
                                 if st > 0:
                                     data = np.concatenate((prevtmp[st - SOP:], tmp[:st]))
@@ -578,6 +586,17 @@ class PrepData():
                         y_temp.append(2)
                         i += 1
 
+                # # downsampling
+                # if interictal:
+                #     cob = list(zip(X_temp, y_temp))
+                #     random.shuffle(cob)
+                #     down_spl = 0.3704
+                #     if down_spl < 1:
+                #         cob = cob[:int((1 - down_spl)*len(cob))]
+                #     if down_spl > 1:
+                #         cob = cob[::down_spl]
+                #     X_temp, y_temp = zip(*cob)
+
                 X_temp = np.concatenate(X_temp, axis=0)
                 y_temp = np.array(y_temp)
                 X.append(X_temp)
@@ -612,8 +631,3 @@ class PrepData():
             [X, y])
         return X, y
 
-
-if __name__ == '__main__':
-    with open('/home/zhangziye/seizure/seizure-prediction-transformer_v4/SETTINGS_CHBMIT.json') as f:
-        settings = json.load(f)
-    ictal_X, ictal_y = PrepData(target=13, type='ictal', settings=settings).apply()
