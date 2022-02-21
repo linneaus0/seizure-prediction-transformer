@@ -7,6 +7,8 @@ torch==1.10.0+cu113
 pandas==1.3.4  
 ...  
 
+把segmentation.csv seizure_summary.csv special_interictal.csv这三个文件存在CHBMIT数据集文件夹下
+
 对病人数据集进行训练：  
 首先下载CHB-MIT数据集，在SETTINGS_CHBMIT.json中更改数据集位置和预处理生成的cache保存位置。  
 main.py中line68-80通过注释选择需要训练的病人(targets)，line123更改训练过程的存储位置  
